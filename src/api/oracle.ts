@@ -55,6 +55,36 @@ export async function getStats(): Promise<Stats> {
   return res.json();
 }
 
+export interface CompareResponse {
+  query: string;
+  byModel: Record<string, { results: Document[]; elapsed_ms: number }>;
+  agreement: {
+    top1: number;
+    top5_jaccard: number;
+    avg_rank_shift: number;
+    shared_ids: string[];
+  };
+}
+
+export async function compareSearch({
+  query,
+  models,
+  limit = 20,
+}: {
+  query: string;
+  models: string[];
+  limit?: number;
+}): Promise<CompareResponse> {
+  const params = new URLSearchParams({
+    q: query,
+    models: models.join(','),
+    limit: String(limit),
+  });
+  const res = await fetch(`${API_BASE}/compare?${params}`);
+  if (!res.ok) throw new Error(`compare ${res.status}`);
+  return res.json();
+}
+
 /** Ping the backend — used by BackendGate for soft-mode detection. */
 export async function ping(): Promise<boolean> {
   try {
