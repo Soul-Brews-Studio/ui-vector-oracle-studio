@@ -6,8 +6,7 @@ import { getMenu, type MenuItem } from '../api/oracle';
 type SubNavItem = { path: string; label: string; icon?: string };
 
 const FALLBACK_ITEMS: SubNavItem[] = [
-  { path: '/', label: 'Playground', icon: '🔍' },
-  { path: '/compare', label: 'Compare', icon: '⚖️' },
+  { path: '/', label: 'Vector Playground', icon: '🔍' },
 ];
 
 interface Props {
@@ -16,7 +15,7 @@ interface Props {
 
 function toSubNavItems(menu: MenuItem[]): SubNavItem[] {
   return menu
-    .filter((m) => m.group !== 'hidden' && m.group !== 'admin')
+    .filter((m) => m.group !== 'hidden' && m.group !== 'admin' && m.hidden !== true)
     .sort((a, b) => a.order - b.order)
     .map((m) => ({
       path: m.path,

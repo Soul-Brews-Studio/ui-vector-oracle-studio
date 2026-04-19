@@ -104,6 +104,7 @@ export interface MenuItem {
   access?: 'public' | 'auth';
   source: 'api' | 'page' | 'plugin';
   added?: boolean;
+  hidden?: boolean;
 }
 
 export async function getMenu({ host }: { host?: string } = {}): Promise<MenuItem[]> {
