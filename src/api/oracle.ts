@@ -28,10 +28,30 @@ export async function search(
   type: string = 'all',
   limit: number = 20,
   mode: 'hybrid' | 'fts' | 'vector' = 'hybrid',
+  model?: string,
 ): Promise<SearchResult> {
   const params = new URLSearchParams({ q: query, type, limit: String(limit), mode });
+  if (model) params.set('model', model);
   const res = await fetch(`${API_BASE}/search?${params}`);
   if (!res.ok) throw new Error(`search ${res.status}`);
+  return res.json();
+}
+
+export interface VectorEmbedder {
+  model: string;
+  dim?: number;
+  count?: number;
+  enabled?: boolean;
+}
+
+export interface Stats {
+  vectors?: VectorEmbedder[];
+  [key: string]: unknown;
+}
+
+export async function getStats(): Promise<Stats> {
+  const res = await fetch(`${API_BASE}/stats`);
+  if (!res.ok) throw new Error(`stats ${res.status}`);
   return res.json();
 }
 
