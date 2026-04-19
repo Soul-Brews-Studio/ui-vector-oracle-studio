@@ -1,0 +1,46 @@
+import { apiUrl } from './host';
+export { apiUrl, hostLabel, activeHost, isDefault, isRemote } from './host';
+
+export const API_BASE = apiUrl('/api');
+
+export interface Document {
+  id: string;
+  type: 'principle' | 'learning' | 'retro';
+  content: string;
+  source_file: string;
+  concepts: string[];
+  project?: string;
+  source?: 'fts' | 'vector' | 'hybrid';
+  score?: number;
+  distance?: number;
+  model?: string;
+  created_at?: string;
+}
+
+export interface SearchResult {
+  results: Document[];
+  total: number;
+  query: string;
+}
+
+export async function search(
+  query: string,
+  type: string = 'all',
+  limit: number = 20,
+  mode: 'hybrid' | 'fts' | 'vector' = 'hybrid',
+): Promise<SearchResult> {
+  const params = new URLSearchParams({ q: query, type, limit: String(limit), mode });
+  const res = await fetch(`${API_BASE}/search?${params}`);
+  if (!res.ok) throw new Error(`search ${res.status}`);
+  return res.json();
+}
+
+/** Ping the backend — used by BackendGate for soft-mode detection. */
+export async function ping(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/stats`, { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
