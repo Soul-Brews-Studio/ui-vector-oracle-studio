@@ -1,7 +1,11 @@
 import { apiUrl } from './host';
+import { cached } from '../lib/cache';
 export { apiUrl, hostLabel, activeHost, isDefault, isRemote } from './host';
 
 export const API_BASE = apiUrl('/api');
+
+const TEN_MIN = 10 * 60 * 1000;
+const ONE_HOUR = 60 * 60 * 1000;
 
 export interface Document {
   id: string;
@@ -32,9 +36,12 @@ export async function search(
 ): Promise<SearchResult> {
   const params = new URLSearchParams({ q: query, type, limit: String(limit), mode });
   if (model) params.set('model', model);
-  const res = await fetch(`${API_BASE}/search?${params}`);
-  if (!res.ok) throw new Error(`search ${res.status}`);
-  return res.json();
+  const qs = params.toString();
+  return cached(`search:${qs}`, TEN_MIN, async () => {
+    const res = await fetch(`${API_BASE}/search?${qs}`);
+    if (!res.ok) throw new Error(`search ${res.status}`);
+    return res.json();
+  }, { tag: 'search' });
 }
 
 export interface VectorEmbedder {
@@ -50,9 +57,11 @@ export interface Stats {
 }
 
 export async function getStats(): Promise<Stats> {
-  const res = await fetch(`${API_BASE}/stats`);
-  if (!res.ok) throw new Error(`stats ${res.status}`);
-  return res.json();
+  return cached('stats', ONE_HOUR, async () => {
+    const res = await fetch(`${API_BASE}/stats`);
+    if (!res.ok) throw new Error(`stats ${res.status}`);
+    return res.json();
+  }, { tag: 'stats' });
 }
 
 /** Ping the backend — used by BackendGate for soft-mode detection. */
