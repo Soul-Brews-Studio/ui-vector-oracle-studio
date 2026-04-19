@@ -1,5 +1,5 @@
 {
-  "name": "vector-oracle-studio",
+  "name": "ui-vector-oracle-studio",
   "version": "0.1.0",
   "type": "module",
   "description": "Vector playground — focused single-page studio for vector.buildwithoracle.com",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Soul-Brews-Studio/vector-oracle-studio.git"
+    "url": "https://github.com/Soul-Brews-Studio/ui-vector-oracle-studio.git"
   },
   "scripts": {
     "dev": "vite",
