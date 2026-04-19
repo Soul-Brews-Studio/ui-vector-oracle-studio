@@ -94,6 +94,29 @@ export async function compareSearch({
   return res.json();
 }
 
+export interface MenuItem {
+  path: string;
+  label: string;
+  group: 'main' | 'tools' | 'admin' | 'hidden';
+  order: number;
+  icon?: string;
+  studio?: string | null;
+  access?: 'public' | 'auth';
+  source: 'api' | 'page' | 'plugin';
+  added?: boolean;
+}
+
+export async function getMenu({ host }: { host?: string } = {}): Promise<MenuItem[]> {
+  const qs = host ? `?host=${encodeURIComponent(host)}` : '';
+  const key = `menu:${host ?? ''}`;
+  return cached(key, TEN_MIN, async () => {
+    const res = await fetch(`${API_BASE}/menu${qs}`);
+    if (!res.ok) throw new Error(`menu ${res.status}`);
+    const data = await res.json();
+    return Array.isArray(data?.items) ? (data.items as MenuItem[]) : [];
+  }, { tag: 'menu' });
+}
+
 /** Ping the backend — used by BackendGate for soft-mode detection. */
 export async function ping(): Promise<boolean> {
   try {
