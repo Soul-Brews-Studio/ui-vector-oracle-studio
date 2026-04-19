@@ -8,8 +8,11 @@ import { sharedIds as computeShared, uniqueIds as computeUnique, type ByModel } 
 
 const STUDIO_ORIGIN = 'https://studio.buildwithoracle.com';
 
+// Seed with an Oracle principle so first paint has real content — not an empty loader.
+const DEFAULT_QUERY = 'patterns over intentions';
+
 export default function Compare() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(DEFAULT_QUERY);
   const [available, setAvailable] = useState<string[]>([]);
   const [enabled, setEnabled] = useState<string[]>([]);
   const [view, setView] = useState<ViewFilter>('all');
