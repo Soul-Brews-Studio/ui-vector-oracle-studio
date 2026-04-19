@@ -24,6 +24,7 @@ export function VectorSubNav({ items = DEFAULT_ITEMS }: Props) {
   const location = useLocation();
 
   if (!isVectorHost()) return null;
+  if (items.length <= 1) return null;
 
   return (
     <div
