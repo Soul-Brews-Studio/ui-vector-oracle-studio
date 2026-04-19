@@ -31,7 +31,7 @@ export function Header({ version = '0.1.0' }: { version?: string }) {
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-2xl">🔮</span>
           <div className="flex items-baseline gap-2 min-w-0">
-            <span className="font-extrabold text-[17px] tracking-tight truncate">ARRA Oracle</span>
+            <span className="font-extrabold text-[17px] tracking-tight truncate">ARRA 🔮Racle</span>
             <span className="text-[11px] uppercase tracking-widest text-text-muted">Vector</span>
           </div>
         </div>
