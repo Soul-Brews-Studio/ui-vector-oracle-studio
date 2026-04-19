@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { search, type Document } from '../api/oracle';
-import { topKAgreement, topKJaccard, avgRankShift, type ByModel } from '../lib/compare';
+import { compareSearch, type Document } from '../api/oracle';
 
 export interface ModelState {
   results: Document[];
@@ -30,7 +29,7 @@ export interface UseCompareSearchArgs {
   auto?: boolean;
 }
 
-const EMPTY: ModelState = { results: [], loading: false, error: null, latencyMs: 0 };
+const EMPTY_AGREEMENT: Agreement = { top1: 0, top5Jaccard: 0, avgShift: 0 };
 
 export function useCompareSearch({
   query,
@@ -40,6 +39,8 @@ export function useCompareSearch({
   auto = true,
 }: UseCompareSearchArgs): CompareSearchState {
   const [byModel, setByModel] = useState<Record<string, ModelState>>({});
+  const [agreement, setAgreement] = useState<Agreement>(EMPTY_AGREEMENT);
+  const [loading, setLoading] = useState(false);
   const reqIdRef = useRef(0);
 
   const run = useCallback(
@@ -47,47 +48,58 @@ export function useCompareSearch({
       const trimmed = q.trim();
       if (!trimmed || enabledModels.length === 0) {
         setByModel({});
+        setAgreement(EMPTY_AGREEMENT);
+        setLoading(false);
         return;
       }
       const myReqId = ++reqIdRef.current;
-
+      setLoading(true);
       setByModel((prev) => {
         const next: Record<string, ModelState> = {};
         for (const m of enabledModels) {
-          next[m] = { ...(prev[m] ?? EMPTY), loading: true, error: null };
+          next[m] = {
+            results: prev[m]?.results ?? [],
+            loading: true,
+            error: null,
+            latencyMs: prev[m]?.latencyMs ?? 0,
+          };
         }
         return next;
       });
 
-      await Promise.all(
-        enabledModels.map(async (model) => {
-          const start = performance.now();
-          try {
-            const data = await search(trimmed, 'all', limit, 'hybrid', model);
-            if (myReqId !== reqIdRef.current) return;
-            setByModel((prev) => ({
-              ...prev,
-              [model]: {
-                results: data.results,
+      try {
+        const data = await compareSearch({ query: trimmed, models: enabledModels, limit });
+        if (myReqId !== reqIdRef.current) return;
+        const next: Record<string, ModelState> = {};
+        for (const m of enabledModels) {
+          const entry = data.byModel[m];
+          next[m] = entry
+            ? {
+                results: entry.results,
                 loading: false,
                 error: null,
-                latencyMs: Math.round(performance.now() - start),
-              },
-            }));
-          } catch (err) {
-            if (myReqId !== reqIdRef.current) return;
-            setByModel((prev) => ({
-              ...prev,
-              [model]: {
-                results: [],
-                loading: false,
-                error: err instanceof Error ? err.message : String(err),
-                latencyMs: Math.round(performance.now() - start),
-              },
-            }));
-          }
-        }),
-      );
+                latencyMs: Math.round(entry.elapsed_ms),
+              }
+            : { results: [], loading: false, error: 'no data', latencyMs: 0 };
+        }
+        setByModel(next);
+        setAgreement({
+          top1: data.agreement.top1,
+          top5Jaccard: data.agreement.top5_jaccard,
+          avgShift: data.agreement.avg_rank_shift,
+        });
+      } catch (err) {
+        if (myReqId !== reqIdRef.current) return;
+        const message = err instanceof Error ? err.message : String(err);
+        const next: Record<string, ModelState> = {};
+        for (const m of enabledModels) {
+          next[m] = { results: [], loading: false, error: message, latencyMs: 0 };
+        }
+        setByModel(next);
+        setAgreement(EMPTY_AGREEMENT);
+      } finally {
+        if (myReqId === reqIdRef.current) setLoading(false);
+      }
     },
     [enabledModels, limit],
   );
@@ -100,18 +112,5 @@ export function useCompareSearch({
 
   const fire = useCallback((q?: string) => void run(q ?? query), [run, query]);
 
-  const agreement = computeAgreement(byModel);
-  const loading = Object.values(byModel).some((s) => s.loading);
-
   return { byModel, agreement, loading, fire };
-}
-
-function computeAgreement(byModel: Record<string, ModelState>): Agreement {
-  const raw: ByModel = {};
-  for (const [m, s] of Object.entries(byModel)) raw[m] = s.results;
-  return {
-    top1: topKAgreement(raw, 1),
-    top5Jaccard: topKJaccard(raw, 5),
-    avgShift: avgRankShift(raw),
-  };
 }
