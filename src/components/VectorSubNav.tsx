@@ -5,6 +5,7 @@ type SubNavItem = { path: string; label: string; icon?: string };
 
 const DEFAULT_ITEMS: SubNavItem[] = [
   { path: '/', label: 'Vector Playground', icon: '🔍' },
+  { path: '/compare', label: 'Compare', icon: '⚖️' },
 ];
 
 interface Props {
@@ -24,7 +25,6 @@ export function VectorSubNav({ items = DEFAULT_ITEMS }: Props) {
   const location = useLocation();
 
   if (!isVectorHost()) return null;
-  if (items.length <= 1) return null;
 
   return (
     <div
