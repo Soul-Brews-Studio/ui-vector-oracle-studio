@@ -1,11 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { isVectorHost } from './Header';
-import { getMenu, type MenuItem } from '../api/oracle';
 
 type SubNavItem = { path: string; label: string; icon?: string };
 
-const FALLBACK_ITEMS: SubNavItem[] = [
+const DEFAULT_ITEMS: SubNavItem[] = [
   { path: '/', label: 'Vector Playground', icon: '🔍' },
 ];
 
@@ -13,44 +11,17 @@ interface Props {
   items?: SubNavItem[];
 }
 
-function toSubNavItems(menu: MenuItem[]): SubNavItem[] {
-  return menu
-    .filter((m) => m.group !== 'hidden' && m.group !== 'admin' && m.hidden !== true)
-    .sort((a, b) => a.order - b.order)
-    .map((m) => ({
-      path: m.path,
-      label: m.label,
-      ...(m.icon ? { icon: m.icon } : {}),
-    }));
-}
-
 /**
  * Vector-only sub-nav tab strip, rendered below the main Header.
  * Hidden outside vector.* hosts so studio.* keeps its own nav untouched.
- * Items come from GET /api/menu?host=<current> with host-glob filtering.
+ *
+ * NOTE: reverted from DB-driven (PR #14) because /api/menu?host=X returns every
+ * null-host item, which duplicates Header items into the sub-nav. Re-enable DB
+ * fetch only after a scope key (e.g. group='subnav' or strict host filter) exists.
+ * See feedback_subnav_distinct_scope.md.
  */
-export function VectorSubNav({ items: override }: Props) {
+export function VectorSubNav({ items = DEFAULT_ITEMS }: Props) {
   const location = useLocation();
-  const [items, setItems] = useState<SubNavItem[]>(override ?? FALLBACK_ITEMS);
-
-  useEffect(() => {
-    if (override) return;
-    if (typeof window === 'undefined') return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const menu = await getMenu({ host: window.location.hostname });
-        if (cancelled || menu.length === 0) return;
-        const next = toSubNavItems(menu);
-        if (next.length > 0) setItems(next);
-      } catch {
-        // keep fallback
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [override]);
 
   if (!isVectorHost()) return null;
 
